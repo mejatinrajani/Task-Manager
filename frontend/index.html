@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Manager | House of MarkTech</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'primary': '#4361EE',
+            'secondary': '#3F37C9',
+            'accent': '#F72585',
+            'dark': '#212529',
+            'light': '#F8F9FA',
+          },
+          fontFamily: {
+            'sans': ['Inter', 'sans-serif'],
+          },
+          boxShadow: {
+            'soft': '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03)',
+            'glow': '0 0 15px rgba(67, 97, 238, 0.3)',
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    .gradient-bg {
+      background: linear-gradient(135deg, #F8F9FA, #F1F3F5);
+    }
+    .card-hover {
+      transition: all 0.3s ease;
+    }
+    .card-hover:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+    }
+    .primary-gradient {
+      background: linear-gradient(90deg, #4361EE, #3F37C9);
+    }
+    .accent-gradient {
+      background: linear-gradient(90deg, #F72585, #7209B7);
+    }
+    .glassmorphism {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+    }
+    .progress-animation {
+      transition: width 1s ease-in-out;
+    }
+    .task-item {
+      transition: all 0.3s ease;
+    }
+    .task-item:hover {
+      transform: translateX(5px);
+    }
+    .btn-hover {
+      transition: all 0.3s ease;
+    }
+    .btn-hover:hover {
+      transform: translateY(-2px);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 10px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 10px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #a1a1a1;
+    }
+    .input-focus {
+      transition: all 0.3s ease;
+    }
+    .input-focus:focus {
+      transform: scale(1.02);
+    }
+    .floating-label {
+      position: absolute;
+      left: 16px;
+      top: 18px;
+      transition: all 0.3s ease;
+      pointer-events: none;
+    }
+    .input-with-label:focus ~ .floating-label,
+    .input-with-label:not(:placeholder-shown) ~ .floating-label {
+      transform: translateY(-25px) scale(0.9);
+      color: #4361EE;
+      font-weight: 500;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 50;
+    }
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 400px;
+      margin: 10% auto;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .fade-out {
+      animation: fadeOut 0.3s ease forwards;
+    }
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+  </style>
+  <script src="https://kit.fontawesome.com/4a2b0555e3.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/zxcvbn@4.4.2/dist/zxcvbn.js"></script>
+</head>
+<body class="gradient-bg font-sans text-dark min-h-screen">
+  <!-- Header Banner -->
+  <header class="primary-gradient text-white py-6 text-center shadow-soft relative overflow-hidden">
+    <div class="absolute inset-0 opacity-20">
+      <div class="absolute top-0 left-0 w-full h-32 bg-white opacity-10 transform -skew-y-6"></div>
+      <div class="absolute bottom-0 right-0 w-full h-32 bg-white opacity-10 transform skew-y-6"></div>
+    </div>
+    <div class="relative z-10">
+      <h1 class="text-4xl font-bold tracking-tight">Task Manager</h1>
+      <p class="text-sm mt-2 opacity-80">Powered by House of MarkTech</p>
+    </div>
+  </header>
+
+  <!-- Auth Section -->
+  <div id="auth-section" class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="glassmorphism p-8 rounded-2xl shadow-soft max-w-md w-full transform transition-all duration-300 hover:shadow-glow">
+      <div id="auth-error" class="text-accent mb-4 text-center hidden rounded-lg p-3 bg-red-50" role="alert"></div>
+      
+      <!-- Login Form -->
+      <div id="login-form">
+        <div class="text-center mb-6">
+          <i class="fas fa-lock text-4xl text-primary mb-3"></i>
+          <h2 class="text-2xl font-semibold text-dark">Welcome Back</h2>
+          <p class="text-gray-500 text-sm">Log in to manage your tasks</p>
+        </div>
+        
+        <div class="relative mb-4">
+          <input type="text" id="login-username" placeholder=" " class="input-with-label input-focus w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white" aria-label="Username">
+          <label for="login-username" class="floating-label text-gray-500">Username</label>
+        </div>
+        
+        <div class="relative mb-4">
+          <input type="password" id="login-password" placeholder=" " class="input-with-label input-focus w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white" aria-label="Password">
+          <label for="login-password" class="floating-label text-gray-500">Password</label>
+        </div>
+        
+        <div class="flex items-center justify-between mb-6">
+          <label class="flex items-center">
+            <input type="checkbox" id="stay-signed-in" class="h-4 w-4 text-primary focus:ring-primary" aria-label="Stay Signed In">
+            <span class="text-sm ml-2 text-gray-600">Stay Signed In</span>
+          </label>
+        </div>
+        
+        <button id="login-btn" class="btn-hover w-full primary-gradient text-white py-3 px-6 rounded-lg flex items-center justify-center shadow-soft" aria-label="Sign In">
+          <i class="fas fa-sign-in-alt mr-2"></i> Sign In
+        </button>
+        
+        <p class="mt-6 text-center text-sm text-gray-600">
+          New here? <a href="#" id="show-register" class="text-primary font-medium hover:text-secondary transition-colors">Create an account</a>
+        </p>
+      </div>
+      
+      <!-- Register Form -->
+      <div id="register-form" class="hidden">
+        <div class="text-center mb-6">
+          <i class="fas fa-user-plus text-4xl text-primary mb-3"></i>
+          <h2 class="text-2xl font-semibold text-dark">Create Account</h2>
+          <p class="text-gray-500 text-sm">Join and start managing your tasks</p>
+        </div>
+        
+        <div class="relative mb-4">
+          <input type="text" id="register-username" placeholder=" " class="input-with-label input-focus w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white" aria-label="Username">
+          <label for="register-username" class="floating-label text-gray-500">Username</label>
+        </div>
+        
+        <div class="relative mb-4">
+          <input type="password" id="register-password" placeholder=" " class="input-with-label input-focus w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white" aria-label="Password">
+          <label for="register-password" class="floating-label text-gray-500">Password</label>
+        </div>
+        
+        <div id="password-strength" class="mb-6 text-sm text-gray-600 p-2"></div>
+        
+        <button id="register-btn" class="btn-hover w-full primary-gradient text-white py-3 px-6 rounded-lg flex items-center justify-center shadow-soft" aria-label="Sign Up">
+          <i class="fas fa-user-plus mr-2"></i> Sign Up
+        </button>
+        
+        <p class="mt-6 text-center text-sm text-gray-600">
+          Already have an account? <a href="#" id="show-login" class="text-primary font-medium hover:text-secondary transition-colors">Sign In</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Task Section -->
+  <div id="task-section" class="hidden min-h-screen p-6 md:p-8 lg:p-12 bg-transparent">
+    <div class="max-w-5xl mx-auto">
+      <!-- Header -->
+      <div class="mb-10 text-center">
+        <h1 class="text-4xl md:text-5xl font-bold text-dark">Hello, <span id="welcome-message" class="text-primary">User</span>!</h1>
+        <p class="text-lg text-gray-600 mt-3">Let's organize your day efficiently.</p>
+      </div>
+      
+      <!-- Task Dashboard -->
+      <div class="glassmorphism p-6 rounded-2xl shadow-soft mb-10">
+        <!-- Progress and Stats -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+          <!-- Progress Bar -->
+          <div class="lg:col-span-4">
+            <div class="flex justify-between items-center mb-2">
+              <p class="text-lg font-medium text-dark">Progress</p>
+              <span id="progress-percentage" class="text-sm font-medium text-primary">0%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-3">
+              <div id="progress-bar" class="primary-gradient h-3 rounded-full progress-animation" style="width: 0%"></div>
+            </div>
+          </div>
+          
+          <!-- Task Stats Cards -->
+          <div class="card-hover glassmorphism rounded-xl p-6 flex flex-col items-center justify-center border-l-4 border-primary">
+            <i class="fas fa-tasks text-primary text-2xl mb-2"></i>
+            <p class="text-gray-500 text-sm">Total Tasks</p>
+            <p id="total-tasks" class="text-2xl font-semibold text-dark">0</p>
+          </div>
+          
+          <div class="card-hover glassmorphism rounded-xl p-6 flex flex-col items-center justify-center border-l-4 border-green-500">
+            <i class="fas fa-check-circle text-green-500 text-2xl mb-2"></i>
+            <p class="text-gray-500 text-sm">Completed</p>
+            <p id="completed-tasks" class="text-2xl font-semibold text-dark">0</p>
+          </div>
+          
+          <div class="card-hover glassmorphism rounded-xl p-6 flex flex-col items-center justify-center border-l-4 border-yellow-500">
+            <i class="fas fa-clock text-yellow-500 text-2xl mb-2"></i>
+            <p class="text-gray-500 text-sm">Pending</p>
+            <p id="pending-tasks" class="text-2xl font-semibold text-dark">0</p>
+          </div>
+          
+          <div class="card-hover glassmorphism rounded-xl p-6 flex flex-col items-center justify-center border-l-4 border-accent">
+            <i class="fas fa-star text-accent text-2xl mb-2"></i>
+            <p class="text-gray-500 text-sm">Streak</p>
+            <p id="streak-days" class="text-2xl font-semibold text-dark">0</p>
+          </div>
+        </div>
+        
+        <!-- Task Input -->
+        <div class="glassmorphism rounded-xl p-6 mb-8">
+          <h3 class="text-lg font-medium text-dark mb-4">Add New Task</h3>
+          <div class="flex flex-wrap gap-4">
+            <div class="w-full md:flex-1">
+              <input type="text" id="task-input" placeholder="What needs to be done?" class="input-focus w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white" aria-label="New Task">
+            </div>
+            
+            <div class="flex flex-wrap gap-4 w-full md:w-auto">
+              <select id="task-category" class="input-focus p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white" aria-label="Task Category">
+                <option value="">Category</option>
+              </select>
+              
+              <input type="date" id="task-due-date" class="input-focus p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white" aria-label="Due Date">
+              
+              <button id="add-task-btn" class="btn-hover primary-gradient text-white px-6 py-3 rounded-lg flex items-center shadow-soft" aria-label="Add Task">
+                <i class="fas fa-plus mr-2"></i> Add Task
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Search and Filters -->
+        <div class="glassmorphism rounded-xl p-6 mb-8">
+          <h3 class="text-lg font-medium text-dark mb-4">Search & Filter</h3>
+          <div class="flex flex-wrap gap-4 justify-between">
+            <div class="relative w-full md:max-w-md">
+              <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+              <input type="text" id="search-input" placeholder="Search tasks..." class="input-focus w-full p-3 pl-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white" aria-label="Search Tasks">
+            </div>
+            
+            <div class="flex flex-wrap gap-2">
+              <button id="filter-all" class="btn-hover px-3 py-2 bg-primary text-white rounded-lg transition duration-200" data-tooltip="All Tasks" aria-label="Filter All">All</button>
+              <button id="filter-completed" class="btn-hover px-3 py-2 bg-gray-200 text-gray-700 rounded-lg transition duration-200" data-tooltip="Completed" aria-label="Filter Completed">Completed</button>
+              <button id="filter-pending" class="btn-hover px-3 py-2 bg-gray-200 text-gray-700 rounded-lg transition duration-200" data-tooltip="Pending" aria-label="Filter Pending">Pending</button>
+              <select id="filter-category" class="input-focus p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white" aria-label="Filter by Category">
+                <option value="">All Categories</option>
+              </select>
+              <button id="sort-newest" class="btn-hover px-3 py-2 bg-gray-200 text-gray-700 rounded-lg transition duration-200" data-tooltip="Sort by Newest" aria-label="Sort by Newest">
+                <i class="fas fa-sort-amount-down-alt mr-1"></i> Newest
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Task List Header -->
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-medium text-dark">Your Tasks</h3>
+          <button id="clear-completed-btn" class="text-red-500 hover:text-red-700 transition duration-200 text-sm flex items-center" data-tooltip="Clear Completed" aria-label="Clear Completed Tasks">
+            <i class="fas fa-trash-alt mr-1"></i> Clear Completed
+          </button>
+        </div>
+        
+        <!-- Loading Spinner -->
+        <div id="loading" class="hidden text-center text-primary py-6" role="status">
+          <div class="flex justify-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          </div>
+          <p class="mt-2 text-gray-600">Loading your tasks...</p>
+        </div>
+        
+        <!-- Empty State -->
+        <div id="empty-state" class="hidden text-center py-12">
+          <i class="fas fa-clipboard-list text-gray-300 text-5xl mb-4"></i>
+          <h4 class="text-xl font-medium text-gray-500">No tasks found</h4>
+          <p class="text-gray-400 mt-2">Add a new task to get started</p>
+        </div>
+        
+        <div class="max-h-96 overflow-y-auto custom-scrollbar">
+          <ul id="task-list" class="space-y-4" role="list"></ul>
+        </div>
+      </div>
+      
+      <div class="flex justify-between items-center mt-6">
+        <p class="text-sm text-gray-500">© 2025 House of MarkTech</p>
+        <button id="logout-btn" class="btn-hover accent-gradient text-white px-6 py-3 rounded-lg flex items-center shadow-soft" data-tooltip="Sign Out" aria-label="Sign Out">
+          <i class="fas fa-sign-out-alt mr-2"></i> Sign Out
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div id="edit-modal" class="modal">
+    <div class="modal-content">
+      <h3 class="text-xl font-semibold text-dark mb-4">Edit Task</h3>
+      <input type="text" id="edit-task-title" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary mb-4" aria-label="Edit Task Title">
+      <div class="flex justify-end gap-2">
+        <button id="cancel-edit" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-200">Cancel</button>
+        <button id="save-edit" class="px-4 py-2 primary-gradient text-white rounded-lg hover:bg-opacity-90 transition duration-200">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notifications -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
