@@ -418,6 +418,7 @@ function updateTaskStats() {
   animateCounter(totalTasksElement, parseInt(totalTasksElement.textContent), totalTasks);
   animateCounter(completedTasksElement, parseInt(completedTasksElement.textContent), completedTasks);
   animateCounter(pendingTasksElement, parseInt(pendingTasksElement.textContent), pendingTasks);
+  streakDaysElement.textContent = state.streak;
   animateCounter(streakDaysElement, parseInt(streakDaysElement.textContent), state.streak);
   progressBar.style.width = `${completionPercentage}%`;
   progressPercentage.textContent = `${completionPercentage}%`;
@@ -512,53 +513,30 @@ function saveStreakData() {
 }
 
 function updateUserStreak(isTaskCompleted) {
-  if (!state.currentUser) return;
+  if (!state.currentUser || !isTaskCompleted) return;
 
   const today = new Date();
-  today.setHours(0, 0, 0, 0, 0); // Normalize to start of day
+  today.setHours(0, 0, 0, 0, 0);
 
-  // Initialize streak data if it doesn't exist
-  if (state.lastActive === null) {
+  // Initialize streak if no lastActive date
+  if (!state.lastActive) {
+    state.streak = 1;
     state.lastActive = today.toISOString();
-    state.streak = isTaskCompleted ? 1 : 0;
     saveStreakData();
     return;
   }
 
   const lastActive = new Date(state.lastActive);
-  lastActive.setHours(0, 0, 0, 0, 0); // Normalize to start of day
-
-  const timeDiff = today - lastActive;
-  const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-
-  // If we're checking streak without completing a task (on page load)
-  if (!isTaskCompleted) {
-    if (daysDiff > 1) { // Missed a day
-      state.streak = 0;
-    }
-    saveStreakData();
-    return;
-  }
-
-  // If completing a task today
-  if (daysDiff === 0) {
-    // Already completed task today - no streak change
-    return;
-  }
+  lastActive.setHours(0, 0, 0, 0, 0);
+  const daysDiff = Math.floor((today - lastActive) / (1000 * 60 * 60 * 24));
 
   if (daysDiff === 1) { // Consecutive day
-    state.streak += 1;
-    // Celebrate milestone streaks
-    if ([3, 7, 14, 30, 100].includes(state.streak)) {
-      triggerConfetti();
-      createToast(`🔥 ${state.streak}-day streak! Keep going!`, 'success');
-    }
+    state.streak++;
   } else if (daysDiff > 1) { // Broken streak
     state.streak = 1;
-    createToast('New streak started!', 'info');
   }
 
-  // Update last active date
+  // Always update lastActive when completing a task
   state.lastActive = today.toISOString();
   saveStreakData();
 }
